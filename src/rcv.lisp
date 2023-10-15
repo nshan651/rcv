@@ -6,8 +6,17 @@
 ;;;    3. Otherwise go to 1.
 ;;; https://en.wikipedia.org/wiki/Instant-runoff_voting
 ;;; Python project for IRV: https://github.com/jontingvold/pyrankvote
-;; (ql:quickload "cl-csv")
 ;; (asdf:load-system :cl-csv)
+
+(defpackage :rcv
+  (:use :cl)
+  (:export :ballots :main))
+
+(in-package :rcv)
+
+(ql:quickload "flexi-streams")
+(ql:quickload "cl-csv")
+(ql:quickload "clingon")
 
 ;; Vars for testing
 (defvar r1 '(("Bush" . 5) ("Gore" . 3) ("Nader" . 2)))
@@ -26,6 +35,8 @@
 
 (defvar ballots
   (cl-csv:read-csv #P"/home/nick/git/rcv/data/ballots.csv"))
+
+(defvar candidates (get-candidates ballots))
 
 (defun get-candidates (ballots)
   "Get a list of all unique candidates on the ballot."
@@ -73,7 +84,6 @@
 
 (defun tournament (ballots)
   "Simulate several rounds of voting."
-  (defvar candidates (get-candidates ballots))
   (labels ((tourn-round (ballots round-num)
 	     (format t "Round: ~a~%" round-num)
 	     (let* ((rankings (rank-prefs ballots))
@@ -99,6 +109,7 @@
 	   (hspace-col2 (- 10 (length (format nil "~d" votes)))))
       (format t "~a~vA~a~vASTATUS~%" candidate hspace-col1 #\Space votes hspace-col2 #\Space))))
 
-(defun main
+(defun main ()
   "Program entrypoint."
+  ;; (sb-ext:disable-debugger)
   (tournament ballots))

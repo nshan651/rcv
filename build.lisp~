@@ -1,0 +1,3 @@
+(defun create-binary ()
+  (asdf:operate 'asdf:load-op :rcv)
+  (sb-ext:save-lisp-and-die "rcv" :toplevel #'rcv:main))

@@ -1,0 +1,4 @@
+all: rcv
+
+rcv:
+	./build.sh "src/main.lisp"
