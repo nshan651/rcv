@@ -7,16 +7,19 @@
 ;;; https://en.wikipedia.org/wiki/Instant-runoff_voting
 ;;; Python project for IRV: https://github.com/jontingvold/pyrankvote
 ;; (asdf:load-system :cl-csv)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (ql:quickload '(:cl-csv :clingon) :silent t))
+  ;; (ql:quickload '(:with-user-abort …) :silent t))
 
 (defpackage :rcv
   (:use :cl)
-  (:export :ballots :main))
+  (:export :ballots :display-results :complete-rankings :main))
 
 (in-package :rcv)
 
-(ql:quickload "flexi-streams")
-(ql:quickload "cl-csv")
-(ql:quickload "clingon")
+;; (ql:quickload "flexi-streams")
+;; (ql:quickload "cl-csv")
+;; (ql:quickload "clingon")
 
 ;; Vars for testing
 (defvar r1 '(("Bush" . 5) ("Gore" . 3) ("Nader" . 2)))
@@ -36,13 +39,13 @@
 (defvar ballots
   (cl-csv:read-csv #P"/home/nick/git/rcv/data/ballots.csv"))
 
-(defvar candidates (get-candidates ballots))
-
 (defun get-candidates (ballots)
   "Get a list of all unique candidates on the ballot."
     (if (null ballots)
 	'()
 	(remove-duplicates (reduce #'append ballots :key #'identity) :test #'string=)))
+
+(defvar candidates (get-candidates ballots))
 
 (defun rank-prefs (ballots)
   "Rank the top preferences for a given round."
@@ -82,6 +85,17 @@
 	(nconc complete-rankings (list (cons candidate 0)))))
     complete-rankings))
 
+(defun display-results (results)
+  "Display the results for each round."
+  (format t "Candidate                    Votes     Status~%")
+  (format t "---------------------------  --------  --------~%")
+  (dolist (pair results)
+    (let* ((candidate (car pair))
+	   (votes (cdr pair))
+	   (hspace-col1 (- 29 (length candidate)))
+	   (hspace-col2 (- 10 (length (format nil "~d" votes)))))
+      (format t "~a~vA~a~vASTATUS~%" candidate hspace-col1 #\Space votes hspace-col2 #\Space))))
+
 (defun tournament (ballots)
   "Simulate several rounds of voting."
   (labels ((tourn-round (ballots round-num)
@@ -97,17 +111,6 @@
 		     (display-results complete-rankings)
 		     (tourn-round result (incf round-num)))))))
     (tourn-round ballots 1)))
-
-(defun display-results (results)
-  "Display the results for each round."
-  (format t "Candidate                    Votes     Status~%")
-  (format t "---------------------------  --------  --------~%")
-  (dolist (pair results)
-    (let* ((candidate (car pair))
-	   (votes (cdr pair))
-	   (hspace-col1 (- 29 (length candidate)))
-	   (hspace-col2 (- 10 (length (format nil "~d" votes)))))
-      (format t "~a~vA~a~vASTATUS~%" candidate hspace-col1 #\Space votes hspace-col2 #\Space))))
 
 (defun main ()
   "Program entrypoint."

@@ -1,23 +1,27 @@
 (asdf:defsystem :rcv
   :description "Ranked-choice voting in Common Lisp."
-  :author "Nick Shannon <public.nshan651.com>"
+  :author "nshan651 <public.nshan651.com>"
   :homepage "https://placeholder.test"
 
   :license "AGPL 3.0"
   :version "0.1"
 
-  :depends-on (:clingon :cl-csv)
+  :depends-on (:clingon :cl-csv :uiop)
   :serial t
   :components ((:module "src" :serial t
-		:components ((:file "main")
+		:components (
+			     (:file "rcv"))))
+			     ;; (:file "main")
 			     ;; (:file "cli")
-  ))))
+  :build-operation "program-op"
+  :build-pathname "rcv"
+  :entry-point "rcv::main"
+)
 
-(asdf:defsystem :rcv/bin
-  :depends-on (:rcv)      ; This system needs the core HELLO system…
-  :components ((:module "src"
-		:components ((:file "main"))))) ; …and includes one
-						; additional file.
+;; (asdf:defsystem :rcv/bin
+;;   :depends-on (:rcv)
+;;   :components ((:module "src"
+;; 		:components ((:file "main")))))
 
 ;; (asdf:defsystem :rcv/test
 ;;   :description "Test suite for rcv."
