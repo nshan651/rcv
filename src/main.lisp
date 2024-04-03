@@ -10,10 +10,7 @@
 ;; (asdf:load-system :cl-csv)
 
 ;; Vars for testing
-(defvar r1 '(("Bush" . 5) ("Gore" . 3) ("Nader" . 2)))
-(defvar r2 '(("Mike Wazowski (Dank)" . 100000) ("George W. Bush (Republican)" . 5) ("Al Gore (Democratic)" . 69) ("Ralph Nader (Green)" . 372)))
-
-(defvar ballots2
+(defvar ballots
   '(("Bush" "Nader" "Gore")
     ("Bush" "Nader" "Gore")
     ("Bush" "Nader")
@@ -24,81 +21,38 @@
     ("Gore" "Nader")
     ("Gore" "Nader")))
 
-(defvar ballots
-  (cl-csv:read-csv #P"/home/nick/git/rcv/data/ballots.csv"))
+(defun rank-top-choices (top-choices)
+  "Return the rankings of each ballot's top choice candidates."
+  (let ((ranking '()))
+    (dolist (choice top-choices)
+      ;; Add a new cons pair if the key doesn't already exist.
+      (pushnew (cons choice 0) ranking :key #'car)
+      ;; Increment the cons cdr
+      (let ((existing (assoc choice ranking)))
+	(setf (cdr existing) (1+ (cdr existing)))))
+    ranking))
 
-(defun get-candidates (ballots)
-  "Get a list of all unique candidates on the ballot."
-    (if (null ballots)
-	'()
-	(remove-duplicates (reduce #'append ballots :key #'identity) :test #'string=)))
+(rank-top-choices '(Bush Gore Bush Gore Nader Gore Yeet))
 
-(defun rank-prefs (ballots)
-  "Rank the top preferences for a given round."
-  (let ((vote-tbl '())				; Assoc list of candidates and votes.
-	(top-candidates (mapcar 'car ballots))) ; First choice prefs.
-    (dolist (candidate top-candidates)
-      (let ((existing (assoc candidate vote-tbl :test #'string=)))
-        (if existing
-            (setf (cdr existing) (+ (cdr existing) 1)) ; Increment the count
-            (push (cons candidate 1) vote-tbl))))
-    (sort vote-tbl #'(lambda (a b) (> (cdr a) (cdr b))))))
-
-(defun elim-candidate (target ballots)
-  "Remove :candidate from each sublist in a list of lists."
-  (mapcar (lambda (ballot)
-            (remove-if (lambda (candidate)
-                         (string= candidate target)) ballot))
-          ballots))
-
-(defun get-last (alist)
-  "Find the last place candidate."
-  (car (car (last alist))))
-
-(defun has-majority (rankings)
-  "Check if there's a majority winner in the rankings."
-  (let ((total-votes (reduce '+ rankings :key #'cdr)))
-    (if (and (>= (cdr (first rankings)) (/ total-votes 2))
-	     (= (length rankings) 2))
-	t
-	nil)))
-
-(defun compare-eliminated (rankings candidates)
-  "Compare the current rankings with the list of candidates."
-  (let ((complete-rankings (copy-list rankings))) 
-    (dolist (candidate candidates)
-      (unless (assoc candidate rankings :test #'string=)
-	(nconc complete-rankings (list (cons candidate 0)))))
-    complete-rankings))
-
+;; 1. Get each ballot's first choice candidate and add to a list
+;; 2. Filter eliminated candidates from the top choices
+;; 3. If there is a single candidate remaining, stop. Otherwise, continue the process
 (defun tournament (ballots)
-  "Simulate several rounds of voting."
-  (defvar candidates (get-candidates ballots))
-  (labels ((tourn-round (ballots round-num)
-	     (format t "Round: ~a~%" round-num)
-	     (let* ((rankings (rank-prefs ballots))
-		    (complete-rankings (compare-eliminated rankings candidates)))
-	       (if (has-majority rankings) 
-		   (progn
-		     (display-results complete-rankings)
-		     complete-rankings)
-		   (let* ((last-place (get-last rankings))
-			  (result (elim-candidate last-place ballots)))
-		     (display-results complete-rankings)
-		     (tourn-round result (incf round-num)))))))
-    (tourn-round ballots 1)))
+  (let* ((top-choices (mapcar #'car candidates))
+	 (rankings (rank-top-choices top-choices)))
+    rankings)
+  )
 
-(defun display-results (results)
-  "Display the results for each round."
-  (format t "Candidate                    Votes     Status~%")
-  (format t "---------------------------  --------  --------~%")
-  (dolist (pair results)
-    (let* ((candidate (car pair))
-	   (votes (cdr pair))
-	   (hspace-col1 (- 29 (length candidate)))
-	   (hspace-col2 (- 10 (length (format nil "~d" votes)))))
-      (format t "~a~vA~a~vASTATUS~%" candidate hspace-col1 #\Space votes hspace-col2 #\Space))))
+(defun elimination (rankings))
 
-(defun main
-  "Program entrypoint."
-  (tournament ballots))
+(defun rcv (ballots)
+  "Ranked choice voting.
+1. Eliminate the candidate with the fewest votes.
+2. If only one candidate remains, elect this candidate and stop.
+3. Otherwise, go back to 1."
+  (let ((candidates '()))
+    (while (> (length candidates) 1)
+	   (tournament top-choices)
+	   )
+    )
+  )
