@@ -1,21 +1,19 @@
-;;; Ranked choice voting program
-;;; Instant Runoff Voting(IRV)
-;;; The instant-runoff vote counting procedure is as follows:
-;;;    1. Eliminate the candidate appearing as the first preference on the fewest ballots.
-;;;    2. If only one candidate remains, elect this candidate and stop.
-;;;    3. Otherwise go to 1.
-;;; https://en.wikipedia.org/wiki/Instant-runoff_voting
-;;; Python project for IRV: https://github.com/jontingvold/pyrankvote
+;;;; Ranked choice voting program
+;;;; Instant Runoff Voting(IRV)
+;;;; The instant-runoff vote counting procedure is as follows:
+;;;;    1. Eliminate the candidate appearing as the first preference on the fewest ballots.
+;;;;    2. If only one candidate remains, elect this candidate and stop.
+;;;;    3. Otherwise go to 1.
+;;;; https://en.wikipedia.org/wiki/Instant-runoff_voting
+;;;; Python project for IRV: https://github.com/jontingvold/pyrankvote
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (ql:quickload '(:cl-csv :clingon) :silent t))
-
-(defpackage :rcv
-  (:use :cl)
+;; (in-package #:cl-user)
+(defpackage #:rcv
+  (:use #:cl)
   (:export :ballots :display-results :complete-rankings :main))
 
 ;; Paste this into a repl to switch namespaces
-(in-package :rcv)
+(in-package #:rcv)
 
 ;; Vars for testing
 (defvar ballots
@@ -60,7 +58,7 @@
 	      (remove-if (lambda (c) (string= c candidate)) ballot))
 	      ballots)))
 
-;; TODO: Revise this to be more concise/efficient
+;;; TODO: Revise this to be more concise/efficient
 (defun add-eliminated (rankings candidates)
   "Compare the current rankings with the list of candidates."
   (let ((complete-rankings (copy-list rankings)))
@@ -104,4 +102,8 @@
 	 (incf counter)
 	 rhist))))
 
-(rcv ballots *candidates* 1 '() )
+(defun main ()
+  "Program entrypoint."
+  (rcv ballots *candidates* 1 '() )
+
+  )

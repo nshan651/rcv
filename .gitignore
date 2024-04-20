@@ -1,3 +1,4 @@
+# Ignore asm
 *.FASL
 *.fasl
 *.lisp-temp
@@ -15,3 +16,9 @@
 *.sx32fsl
 *.wx64fsl
 *.wx32fsl
+
+# SBCL/ASDF Files
+system-index.txt
+
+bin/
+
