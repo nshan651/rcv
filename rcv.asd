@@ -23,7 +23,6 @@
   :entry-point "rcv::main"
 )
 
-;; (asdf:defsystem "rcv/tests"
 (defsystem "rcv/tests"
   :description "Test suite for rcv."
   :author "Nick Shannon <public.nshan651.com>"
@@ -36,8 +35,14 @@
   :components ((:module "t"
                 :serial t
                 :components ((:file "main")
-                             ;; (:file "tests")
 			     )
 		))
   ;; :perform (test-op (op c) (symbol-call :rove :run c)))
 )
+
+;;; Enable SBCL core compression to greatly reduce binary size.
+#+sb-core-compression
+(defmethod asdf:perform ((o asdf:image-op) (c asdf:system))
+  (uiop:dump-image (asdf:output-file o c)
+		   :executable t
+		   :compression t))
