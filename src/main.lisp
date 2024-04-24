@@ -9,7 +9,7 @@
 
 ;; (in-package #:cl-user)
 (defpackage #:rcv
-  (:use #:cl)
+  (:use #:cl #:clingon)
   (:export :ballots :display-results :complete-rankings :main))
 
 ;; Paste this into a repl to switch namespaces
@@ -102,8 +102,56 @@
 	 (incf counter)
 	 rhist))))
 
+(defun cli/options ()
+  "Returns a list of options for cli command."
+  (list
+   (clingon:make-option
+    :string
+    :description "A csv file containing rank choice ballots."
+    :short-name #\f
+    :long-name "file"
+    :key :filename)
+   (clingon:make-option
+    :string              ;; <--- string type: expects one parameter on the CLI.
+    :description "Name to greet"
+    :short-name #\n
+    :long-name "name"
+    :env-vars '("USER")     ;; <-- takes this default value if the env var exists.
+    :initial-value "lisper" ;; <-- default value if nothing else is set.
+    :key :name))
+  )
+
+(defun cli/handler (cmd)
+  "Handler function for top-level cli command."
+  (let ((free-args (clingon:command-arguments cmd))
+	(filename (clingon:getopt cmd :filename))
+	(name (clingon:getopt cmd :name)))
+    (let ((ballots (cl-csv:read-csv (parse-namestring filename)))
+	  (candidates (remove-duplicates (reduce #'append ballots :key #'identity)
+					 :test #'string=)))
+      (format t "~A~%" candidates)
+      )
+
+    ;; (format t "Hello ~a!~%" name)
+    ;; (rcv ballots *candidates* 1 '() )
+    )
+  )
+
+(defun cli/command ()
+  "Command-line entrypoint."
+  (clingon:make-command
+   :name "rcv"
+   :description "Ranked choice voting."
+   :version "0.1"
+   :authors '("nshan651 <public@nshan651.com")
+   :license "AGPL 3.0"
+   :options (cli/options)
+   ;; :handler #'null))
+   :handler #'cli/handler))
+
 (defun main ()
   "Program entrypoint."
-  (rcv ballots *candidates* 1 '() )
+  (clingon:run (cli/command))
+  ;; (rcv ballots *candidates* 1 '() )
 
   )

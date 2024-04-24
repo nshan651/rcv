@@ -6,7 +6,9 @@ LISP := sbcl
 .PHONY: all clean install run uninstall
 
 all: 
-	$(LISP)	--non-interactive --load 'build.lisp'
+	$(LISP)	--non-interactive \
+		--eval '(ql:quickload :rcv)' \
+		--eval '(asdf:make :rcv)'
 
 run:
 	@ ./bin/$(BIN)
