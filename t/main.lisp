@@ -1,44 +1,27 @@
+(in-package #:cl-user)
 (defpackage #:rcv/t/main
   (:use #:cl
-	#:fiveam))
+	#:fiveam
+	#:rcv))
 (in-package #:rcv/t/main)
 
-;; (deftest example-test
-;;   (ok (= 1 1)))
-
-;; (deftest testing-length
-;;   (testing "An example test to get this thing working."
-;;     (ok (= (length #(1 2 3)) 3))))
-
-;; (deftest another-test
-;;   (testing "Another example."
-;;     (ok (stringp "Am I a string?"))))
-
-;; (deftest test-test
-;;   (testing "Foo."
-;;     (ok (stringp 5))))
-
-;; (rove:run-suite (make-symbol (package-name *package*)))
-
-(def-suite my-system
+(def-suite test-rcv
   :description "Test my system")
-(in-suite my-system)
+(in-suite test-rcv)
 
-(fiveam:test sum-1
-  (fiveam:is (= 3 (+ 1 2))))
+(defvar *ballots*
+  (cl-csv:read-csv (parse-namestring "data/ballots.csv")))
 
-;; We'll also add a failing test case
-(fiveam:test sum2
-  (fiveam:is (= 4 (+ 1 2))))
+(defvar *candidates*
+  (remove-duplicates (reduce #'append *ballots* :key #'identity)
+		     :test #'string=))
 
-(fiveam:run! 'my-system)
+(fiveam:test irv-1
+  (let ((res (rcv *ballots* *candidates*)))
+    (fiveam:is
+     (equal res
+	    '((("Bush" . 4) ("Gore" . 3) ("Nader" . 2) ("Yeet" . 0))
+	      (("Gore" . 5) ("Bush" . 4) ("Nader" . 0) ("Yeet" . 0)))))))
 
-(def-suite our-system
-  :description "Test our system")
-(in-suite our-system)
 
-(fiveam:test is-string
-  (fiveam:is (stringp "This is a string...")))
-
-(fiveam:run! 'our-system)
-;; (fiveam:run!)
+(fiveam:run! 'test-rcv)

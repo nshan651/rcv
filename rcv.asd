@@ -9,6 +9,8 @@
   :depends-on ("clingon"
 	       "cl-csv"
 	       "uiop")
+  ;; Needed for pre-configuring default cli options.
+  :defsystem-depends-on (:clingon)
   :components ((:module "src"
 		:serial t
 		:components (
@@ -39,6 +41,22 @@
 		))
   ;; :perform (test-op (op c) (symbol-call :rove :run c)))
 )
+
+;;; Customize default options for clingon.
+;;; Add -h and -v as shorthands by updating default options.
+(setf clingon:*default-options*
+      (list
+       (clingon:make-option :flag
+			    :description "Display usage information and exit."
+			    :long-name "help"
+			    :short-name #\h
+			    :key :clingon.help.flag)
+       (clingon:make-option :flag
+			    :description "Display version and exit."
+			    :long-name "version"
+			    :short-name #\v
+			    :key :clingon.version.flag)
+       clingon:*default-bash-completions-flag*))
 
 ;;; Enable SBCL core compression to greatly reduce binary size.
 #+sb-core-compression

@@ -7,32 +7,41 @@
 ;;;; https://en.wikipedia.org/wiki/Instant-runoff_voting
 ;;;; Python project for IRV: https://github.com/jontingvold/pyrankvote
 
-;; (in-package #:cl-user)
+(in-package #:cl-user)
 (defpackage #:rcv
   (:use #:cl #:clingon)
-  (:export :ballots :display-results :complete-rankings :main))
-
-;; Paste this into a repl to switch namespaces
+  (:export :display-results :main :rcv :tournament))
 (in-package #:rcv)
 
-;; Vars for testing
-(defvar ballots
-  '(("Bush" "Nader" "Gore")
-    ("Bush" "Nader" "Gore")
-    ("Bush" "Nader")
-    ("Bush" "Nader")
-    ("Nader" "Gore" "Bush")
-    ("Nader" "Gore")
-    ("Gore" "Nader" "Bush")
-    ("Gore" "Nader")
-    ("Gore" "Nader" "Yeet")))
+(defun get-ballots (source)
+  "Read ballots from stdin or a file."
+  (if (and (not (null source)) (probe-file source))
+      ;; Parse csv.
+      (remove-empty (cl-csv:read-csv (parse-namestring source)))
 
-(defvar *ballots*
-  (cl-csv:read-csv #P"/home/nick/git/rcv/data/ballots.csv"))
+      (let ((lines '()))
+	(format t "READ STDIN")
+        ;; Parse stdin.
+        (loop for line = (read-line *standard-input* nil)
+	      while line
+	      do (push line lines))
+        ;; Split each line into a list of values
+        (mapcar #'(lambda (line) (cl-ppcre:split #\, line)) lines)
+	(remove-empty lines))
+      ))
 
-(defvar *candidates*
-  (remove-duplicates (reduce #'append *ballots* :key #'identity)
+(defun get-candidates (ballots)
+  "Get a list of candidates, derived from the submitted ballots."
+  (remove-duplicates (reduce #'append ballots :key #'identity)
 		     :test #'string=))
+
+(defun remove-empty (ballots)
+  "Remove nil values and empty strings from ballots."
+  (mapcar #'(lambda (ballot)
+	      (remove-if #'(lambda (x)
+			     (or (null x) (string= x "")))
+			 ballot))
+	  ballots))
 
 (defun rank-prefs (top-choices)
   "Return the rankings of each ballot's top choice candidates."
@@ -58,9 +67,8 @@
 	      (remove-if (lambda (c) (string= c candidate)) ballot))
 	      ballots)))
 
-;;; TODO: Revise this to be more concise/efficient
 (defun add-eliminated (rankings candidates)
-  "Compare the current rankings with the list of candidates."
+  "Add eliminated candidates to current round history with a vote count of zero."
   (let ((complete-rankings (copy-list rankings)))
     (dolist (candidate candidates)
       (unless (assoc candidate rankings :test #'string=)
@@ -81,7 +89,7 @@
 	  ;; Add back in previously eliminated candidates with vote total 0.
 	  (list (add-eliminated rankings candidates))))
 
-(defun rcv (ballots candidates counter ranking-history)
+(defun tournament (ballots candidates &optional (counter 0) (ranking-history '()))
   "Ranked choice voting.
 1. Eliminate the candidate with the fewest votes.
 2. If only one candidate remains, elect this candidate and stop.
@@ -92,66 +100,66 @@
     (if (has-majority rankings)
 	;; Terminal case: print end results and/or return ranking hist
 	(progn
-	  (format t "TODO: show final results here~%")
-	  (format t "counter: ~A~%" counter)
+	  (display-results rhist)
 	  rhist)
 	;; Move to next tourn round; eliminating last place candidates
-	(rcv
+	(tournament
 	 (eliminate rankings ballots)
 	 candidates
 	 (incf counter)
 	 rhist))))
 
-(defun cli/options ()
-  "Returns a list of options for cli command."
-  (list
-   (clingon:make-option
-    :string
-    :description "A csv file containing rank choice ballots."
-    :short-name #\f
-    :long-name "file"
-    :key :filename)
-   (clingon:make-option
-    :string              ;; <--- string type: expects one parameter on the CLI.
-    :description "Name to greet"
-    :short-name #\n
-    :long-name "name"
-    :env-vars '("USER")     ;; <-- takes this default value if the env var exists.
-    :initial-value "lisper" ;; <-- default value if nothing else is set.
-    :key :name))
-  )
+(defun display-results (ranking-history)
+  "Print out the ranking history."
+  (dolist (round ranking-history)
+    (format t "Candidate                       Votes
+------------------------------  ---------~%")
+    (dolist (rankpair round)
+      (let* ((candidate (car rankpair))
+	     (votes (cdr rankpair))
+	     (hspace-col1 (- 32 (length candidate)))
+	     ;; (hspace-col2 (- 10 (length (format nil "~d" votes))))
+	     )
+	(format t "~a~vA~a~%" candidate hspace-col1 #\Space votes)))
+      (format t "~%")))
 
-(defun cli/handler (cmd)
+(defun print-ballots (ballots)
+  "Helper to print ballots."
+  (dolist (ballot ballots)
+    (dolist (candidate ballot)
+      (format t "~a -> " candidate))
+    (format t "~%")
+  (format t "Col len: ~a~%" (length ballot))
+  ))
+
+(defun rcv (cmd)
   "Handler function for top-level cli command."
-  (let ((free-args (clingon:command-arguments cmd))
-	(filename (clingon:getopt cmd :filename))
-	(name (clingon:getopt cmd :name)))
-    (let ((ballots (cl-csv:read-csv (parse-namestring filename)))
-	  (candidates (remove-duplicates (reduce #'append ballots :key #'identity)
-					 :test #'string=)))
-      (format t "~A~%" candidates)
-      )
-
-    ;; (format t "Hello ~a!~%" name)
-    ;; (rcv ballots *candidates* 1 '() )
+  (let ((args (clingon:command-arguments cmd)))
+    (let* ((ballots (get-ballots (car args)))
+	   (candidates (get-candidates ballots)))
+      (tournament ballots candidates 1 '()))
     )
   )
 
 (defun cli/command ()
   "Command-line entrypoint."
+  ;;; Add -h and -v as shorthands by updating default options.
+  ;; (cli/update-defaults)
   (clingon:make-command
    :name "rcv"
    :description "Ranked choice voting."
    :version "0.1"
    :authors '("nshan651 <public@nshan651.com")
-   :license "AGPL 3.0"
-   :options (cli/options)
-   ;; :handler #'null))
-   :handler #'cli/handler))
+   :license "GPL-3.0"
+   :options (list
+	     (clingon:make-option
+	      :string
+	      :description "A csv file containing rank choice ballots."
+	      :short-name #\f
+	      :long-name "file"
+	      :key :filename))
+   :handler #'rcv))
 
 (defun main ()
   "Program entrypoint."
-  (clingon:run (cli/command))
-  ;; (rcv ballots *candidates* 1 '() )
-
-  )
+  (clingon:run (cli/command)))

@@ -13,6 +13,9 @@ all:
 run:
 	@ ./bin/$(BIN)
 
+test:
+	@ ./bin/$(BIN) -f "data/ballots.csv"
+
 install:
 	mkdir -p $(DESTDIR)/usr/local/bin
 	install -Dm755 ./bin/$(BIN) $(DESTDIR)/usr/local/bin/$(BIN)
