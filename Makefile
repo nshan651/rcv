@@ -14,7 +14,7 @@ run:
 	@ ./bin/$(BIN)
 
 test:
-	$(LISP)	--eval '(ql:quickload :rcv/tests)' 
+	$(LISP)	--non-interactive --eval '(ql:quickload :rcv/tests)' 
 
 install:
 	mkdir -p $(DESTDIR)/usr/local/bin

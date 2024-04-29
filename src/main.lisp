@@ -13,17 +13,6 @@
   (:export :display-results :main :rcv :tournament))
 (in-package #:rcv)
 
-(defvar *ballots-test*
-  '(("Bush" "Nader" "Gore")
-    ("Bush" "Nader" "Gore")
-    ("Bush" "Nader")
-    ("Bush" "Nader")
-    ("Nader" "Gore" "Bush")
-    ("Nader" "Gore")
-    ("Gore" "Nader" "Bush")
-    ("Gore" "Nader")
-    ("Gore" "Nader" "Yeet")))
-
 (defun get-ballots (source)
   "Read ballots from stdin or a file."
   (if (and (not (null source)) (probe-file source))
@@ -62,13 +51,15 @@
       ;; Increment the cons cdr
       (let ((existing (assoc choice ranking :test #'equal)))
 	(setf (cdr existing) (1+ (cdr existing)))))
-
-    ;; Return a sorted assoc list of candidates
-    (sort ranking #'(lambda (a b) (> (cdr a) (cdr b))))))
+    ranking))
 
 (defun get-last (alist)
-  "Find the last place candidate."
-  (car (car (last alist))))
+  "Find the last place candidate in the rankings."
+  (car (reduce #'(lambda (a b)
+		   (if (< (cdr a) (cdr b))
+		       a
+		       b))
+	       alist)))
 
 (defun eliminate (rankings ballots)
   "Eliminate the candidate with the fewest votes from the ballot."
@@ -93,8 +84,9 @@
 (defun update-ranking-history (candidates rankings ranking-history)
   "Add the current rankings to the history data structure. When a candidate is
    eliminated, add them back into the rankings with a vote total of zero."
-  (append ranking-history
-	  (list (add-eliminated rankings candidates))))
+  (let ((round-results (list (add-eliminated rankings candidates))))
+    (sort (car round-results) #'(lambda (a b) (> (cdr a) (cdr b))))
+    (append ranking-history round-results)))
 
 (defun display-results (ranking-history)
   "Print out the ranking history."
