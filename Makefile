@@ -14,7 +14,7 @@ run:
 	@ ./bin/$(BIN)
 
 test:
-	@ ./bin/$(BIN) -f "data/ballots.csv"
+	$(LISP)	--eval '(ql:quickload :rcv/tests)' 
 
 install:
 	mkdir -p $(DESTDIR)/usr/local/bin

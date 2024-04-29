@@ -9,7 +9,7 @@
   :description "Test my system")
 (in-suite test-rcv)
 
-(defvar *ballots-test*
+(defvar *ballots-str*
   '(("Bush" "Nader" "Gore")
     ("Bush" "Nader" "Gore")
     ("Bush" "Nader")
@@ -18,7 +18,20 @@
     ("Nader" "Gore")
     ("Gore" "Nader" "Bush")
     ("Gore" "Nader")
-    ("Gore" "Nader" "Yeet")))
+    ("Gore" "Nader" "Yeet"))
+  "Define a nested list of ballots of type string.")
+
+(defvar *ballots-sym*
+  '((Bush Nader Gore)
+    (Bush Nader Gore)
+    (Bush Nader)
+    (Bush Nader)
+    (Nader Gore Bush)
+    (Nader Gore)
+    (Gore Nader Bush)
+    (Gore Nader)
+    (Gore Nader Yeet)))
+  ;; "Define a nested list of ballots of type symbol.")
 
 (defvar *ballots*
   (cl-csv:read-csv (parse-namestring "data/ballots.csv")))
@@ -28,11 +41,10 @@
 		     :test #'string=))
 
 (fiveam:test irv-1
-  (let ((res (rcv *ballots* *candidates*)))
+  (let ((res (tournament *ballots* *candidates*)))
     (fiveam:is
      (equal res
 	    '((("Bush" . 4) ("Gore" . 3) ("Nader" . 2) ("Yeet" . 0))
 	      (("Gore" . 5) ("Bush" . 4) ("Nader" . 0) ("Yeet" . 0)))))))
 
-
-(fiveam:run! 'test-rcv)
+(fiveam:run!)

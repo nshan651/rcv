@@ -43,13 +43,12 @@
 (defun get-candidates (ballots)
   "Get a list of candidates, derived from the submitted ballots."
   (remove-duplicates (reduce #'append ballots :key #'identity)
-		     :test #'string=))
+		     :test #'equal))
 
 (defun remove-empty (ballots)
   "Remove nil values and empty strings from ballots."
   (mapcar #'(lambda (ballot)
-	      (remove-if #'(lambda (x)
-			     (or (null x) (string= x "")))
+	      (remove-if #'(lambda (x) (or (null x) (string= x "")))
 			 ballot))
 	  ballots))
 
@@ -58,10 +57,12 @@
   (let ((ranking '()))
     (dolist (choice top-choices)
       ;; Add a new cons pair if the key doesn't already exist.
-      (pushnew (cons choice 0) ranking :key #'car)
+      (pushnew (cons choice 0) ranking
+	       :key #'(lambda (x) (equal (car x) choice)))
       ;; Increment the cons cdr
-      (let ((existing (assoc choice ranking)))
+      (let ((existing (assoc choice ranking :test #'equal)))
 	(setf (cdr existing) (1+ (cdr existing)))))
+
     ;; Return a sorted assoc list of candidates
     (sort ranking #'(lambda (a b) (> (cdr a) (cdr b))))))
 
@@ -79,7 +80,7 @@
 (defun add-eliminated (rankings candidates)
   "Add eliminated candidates to current round history with a vote count of zero."
   (mapcan (lambda (candidate)
-	    (list (or (assoc candidate rankings :test #'string=)
+	    (list (or (assoc candidate rankings :test #'equal)
 		      (cons candidate 0))))
           candidates))
 
@@ -132,7 +133,7 @@
 3. Otherwise, go back to 1."
   (let* ((ballots (get-ballots source))
 	 (candidates (get-candidates ballots)))
-    (tournament *ballots-test* candidates)))
+    (tournament ballots candidates)))
 
 (defun cli/handler (cmd)
   "Command-line argument handler which enters rcv."
