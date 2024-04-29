@@ -13,6 +13,17 @@
   (:export :display-results :main :rcv :tournament))
 (in-package #:rcv)
 
+(defvar *ballots-test*
+  '(("Bush" "Nader" "Gore")
+    ("Bush" "Nader" "Gore")
+    ("Bush" "Nader")
+    ("Bush" "Nader")
+    ("Nader" "Gore" "Bush")
+    ("Nader" "Gore")
+    ("Gore" "Nader" "Bush")
+    ("Gore" "Nader")
+    ("Gore" "Nader" "Yeet")))
+
 (defun get-ballots (source)
   "Read ballots from stdin or a file."
   (if (and (not (null source)) (probe-file source))
@@ -27,8 +38,7 @@
 	      do (push line lines))
         ;; Split each line into a list of values
         (mapcar #'(lambda (line) (cl-ppcre:split #\, line)) lines)
-	(remove-empty lines))
-      ))
+	(remove-empty lines))))
 
 (defun get-candidates (ballots)
   "Get a list of candidates, derived from the submitted ballots."
@@ -52,7 +62,6 @@
       ;; Increment the cons cdr
       (let ((existing (assoc choice ranking)))
 	(setf (cdr existing) (1+ (cdr existing)))))
-
     ;; Return a sorted assoc list of candidates
     (sort ranking #'(lambda (a b) (> (cdr a) (cdr b))))))
 
@@ -69,96 +78,87 @@
 
 (defun add-eliminated (rankings candidates)
   "Add eliminated candidates to current round history with a vote count of zero."
-  (let ((complete-rankings (copy-list rankings)))
-    (dolist (candidate candidates)
-      (unless (assoc candidate rankings :test #'string=)
-	(nconc complete-rankings (list (cons candidate 0)))))
-    complete-rankings))
+  (mapcan (lambda (candidate)
+	    (list (or (assoc candidate rankings :test #'string=)
+		      (cons candidate 0))))
+          candidates))
 
 (defun has-majority (rankings)
   "Check if there is a majority winner in the rankings."
   (let ((total-votes (reduce '+ rankings :key #'cdr)))
-    (if (and (>= (cdr (first rankings)) (/ total-votes 2))
-	     (= (length rankings) 2))
-	t
-	nil)))
+    (and (>= (cdr (first rankings)) (/ total-votes 2))
+	     (= (length rankings) 2))))
 
 (defun update-ranking-history (candidates rankings ranking-history)
-  "Add the current rankings to the history data structure."
+  "Add the current rankings to the history data structure. When a candidate is
+   eliminated, add them back into the rankings with a vote total of zero."
   (append ranking-history
-	  ;; Add back in previously eliminated candidates with vote total 0.
 	  (list (add-eliminated rankings candidates))))
 
-(defun tournament (ballots candidates &optional (counter 0) (ranking-history '()))
-  "Ranked choice voting.
-1. Eliminate the candidate with the fewest votes.
-2. If only one candidate remains, elect this candidate and stop.
-3. Otherwise, go back to 1."
+(defun display-results (ranking-history)
+  "Print out the ranking history."
+  (let ((round-nbr 0))
+    (dolist (round ranking-history)
+      (format t "Round ~a~%" (incf round-nbr))
+      (format t "Candidate                       Votes
+------------------------------  ---------~%")
+      (dolist (rankpair round)
+	(let* ((candidate (car rankpair))
+	       (votes (cdr rankpair))
+	       (hspace-col1 (- 32 (length candidate)))
+	       ;; (hspace-col2 (- 10 (length (format nil "~d" votes))))
+	       )
+	  (format t "~a~vA~a~%" candidate hspace-col1 #\Space votes)))
+      (format t "~%"))))
+
+(defun tournament (ballots candidates &optional (ranking-history '()))
+  "Tournament round."
   (let* ((top-choices (mapcar #'car ballots))
 	 (rankings (rank-prefs top-choices))
 	 (rhist (update-ranking-history candidates rankings ranking-history)))
     (if (has-majority rankings)
 	;; Terminal case: print end results and/or return ranking hist
-	(progn
-	  (display-results rhist)
-	  rhist)
+	(progn (display-results rhist)
+	       rhist)
 	;; Move to next tourn round; eliminating last place candidates
-	(tournament
-	 (eliminate rankings ballots)
-	 candidates
-	 (incf counter)
-	 rhist))))
+	(tournament (eliminate rankings ballots)
+		    candidates
+		    rhist))))
 
-(defun display-results (ranking-history)
-  "Print out the ranking history."
-  (dolist (round ranking-history)
-    (format t "Candidate                       Votes
-------------------------------  ---------~%")
-    (dolist (rankpair round)
-      (let* ((candidate (car rankpair))
-	     (votes (cdr rankpair))
-	     (hspace-col1 (- 32 (length candidate)))
-	     ;; (hspace-col2 (- 10 (length (format nil "~d" votes))))
-	     )
-	(format t "~a~vA~a~%" candidate hspace-col1 #\Space votes)))
-      (format t "~%")))
+(defun rcv (source)
+  "Ranked choice voting.
+1. Eliminate the candidate with the fewest votes.
+2. If only one candidate remains, elect this candidate and stop.
+3. Otherwise, go back to 1."
+  (let* ((ballots (get-ballots source))
+	 (candidates (get-candidates ballots)))
+    (tournament *ballots-test* candidates)))
 
-(defun print-ballots (ballots)
-  "Helper to print ballots."
-  (dolist (ballot ballots)
-    (dolist (candidate ballot)
-      (format t "~a -> " candidate))
-    (format t "~%")
-  (format t "Col len: ~a~%" (length ballot))
-  ))
-
-(defun rcv (cmd)
-  "Handler function for top-level cli command."
+(defun cli/handler (cmd)
+  "Command-line argument handler which enters rcv."
   (let ((args (clingon:command-arguments cmd)))
-    (let* ((ballots (get-ballots (car args)))
-	   (candidates (get-candidates ballots)))
-      (tournament ballots candidates 1 '()))
-    )
-  )
+    (rcv (car args))))
+
+(defun cli/options ()
+  "A list of cli options."
+  (list
+   (clingon:make-option
+    :string
+    :description "A csv file containing rank choice ballots."
+    :short-name #\f
+    :long-name "file"
+    :key :filename)))
 
 (defun cli/command ()
   "Command-line entrypoint."
-  ;;; Add -h and -v as shorthands by updating default options.
-  ;; (cli/update-defaults)
   (clingon:make-command
    :name "rcv"
    :description "Ranked choice voting."
    :version "0.1"
    :authors '("nshan651 <public@nshan651.com")
    :license "GPL-3.0"
-   :options (list
-	     (clingon:make-option
-	      :string
-	      :description "A csv file containing rank choice ballots."
-	      :short-name #\f
-	      :long-name "file"
-	      :key :filename))
-   :handler #'rcv))
+   :options (cli/options)
+   :handler #'cli/handler))
 
 (defun main ()
   "Program entrypoint."

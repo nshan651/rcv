@@ -9,6 +9,17 @@
   :description "Test my system")
 (in-suite test-rcv)
 
+(defvar *ballots-test*
+  '(("Bush" "Nader" "Gore")
+    ("Bush" "Nader" "Gore")
+    ("Bush" "Nader")
+    ("Bush" "Nader")
+    ("Nader" "Gore" "Bush")
+    ("Nader" "Gore")
+    ("Gore" "Nader" "Bush")
+    ("Gore" "Nader")
+    ("Gore" "Nader" "Yeet")))
+
 (defvar *ballots*
   (cl-csv:read-csv (parse-namestring "data/ballots.csv")))
 
