@@ -15,19 +15,13 @@
 
 (defun get-ballots (source)
   "Read ballots from stdin or a file."
-  (if (and (not (null source)) (probe-file source))
-      ;; Parse csv.
-      (remove-empty (cl-csv:read-csv (parse-namestring source)))
-
-      (let ((lines '()))
-	(format t "READ STDIN")
-        ;; Parse stdin.
-        (loop for line = (read-line *standard-input* nil)
-	      while line
-	      do (push line lines))
-        ;; Split each line into a list of values
-        (mapcar #'(lambda (line) (cl-ppcre:split #\, line)) lines)
-	(remove-empty lines))))
+  (let ((csv-str (if (and source (probe-file source))
+		     (parse-namestring source)
+		     (with-output-to-string (output)
+		       (loop for line = (read-line *standard-input* nil)
+			     while line
+			     do (write-line line output))))))
+    (remove-empty (cl-csv:read-csv csv-str))))
 
 (defun get-candidates (ballots)
   "Get a list of candidates, derived from the submitted ballots."
