@@ -71,16 +71,14 @@
 
 (defun has-majority (rankings)
   "Check if there is a majority winner in the rankings."
-  (let ((total-votes (reduce '+ rankings :key #'cdr)))
-    (and (>= (cdr (first rankings)) (/ total-votes 2))
-	     (= (length rankings) 2))))
+  (let ((total-votes (reduce #'+ rankings :key #'cdr)))
+    (> (cdr (first rankings)) (/ total-votes 2))))
 
-(defun update-ranking-history (candidates rankings ranking-history)
+(defun process-rankings (candidates rankings)
   "Add the current rankings to the history data structure. When a candidate is
    eliminated, add them back into the rankings with a vote total of zero."
-  (let ((round-results (list (add-eliminated rankings candidates))))
-    (sort (car round-results) #'(lambda (a b) (> (cdr a) (cdr b))))
-    (append ranking-history round-results)))
+  (sort (add-eliminated rankings candidates) #'(lambda (a b)
+						 (> (cdr a) (cdr b)))))
 
 (defun display-results (ranking-history)
   "Print out the ranking history."
@@ -102,11 +100,13 @@
   "Tournament round."
   (let* ((top-choices (mapcar #'car ballots))
 	 (rankings (rank-prefs top-choices))
-	 (rhist (update-ranking-history candidates rankings ranking-history)))
-    (if (has-majority rankings)
+	 (round-results (process-rankings candidates rankings))
+	 (rhist (append ranking-history (list round-results))))
+    (if (has-majority round-results)
 	;; Terminal case: print end results and/or return ranking hist
-	(progn (display-results rhist)
-	       rhist)
+	(progn
+	  (display-results rhist)
+	  rhist)
 	;; Move to next tourn round; eliminating last place candidates
 	(tournament (eliminate rankings ballots)
 		    candidates
