@@ -45,40 +45,33 @@
       ;; Increment the cons cdr
       (let ((existing (assoc choice ranking :test #'equal)))
 	(setf (cdr existing) (1+ (cdr existing)))))
-    ranking))
-
-(defun get-last (alist)
-  "Find the last place candidate in the rankings."
-  (car (reduce #'(lambda (a b)
-		   (if (< (cdr a) (cdr b))
-		       a
-		       b))
-	       alist)))
+    ;; ranking))
+    (sort ranking #'(lambda (a b)
+		       (< (cdr a) (cdr b))))))
 
 (defun eliminate (rankings ballots)
   "Eliminate the candidate with the fewest votes from the ballot."
-  (let ((candidate (get-last rankings)))
+  (let ((candidate (caar rankings)))
     (mapcar (lambda (ballot)
 	      (remove-if (lambda (c) (string= c candidate)) ballot))
 	      ballots)))
 
 (defun add-eliminated (rankings candidates)
   "Add eliminated candidates to current round history with a vote count of zero."
-  (mapcan (lambda (candidate)
-	    (list (or (assoc candidate rankings :test #'equal)
-		      (cons candidate 0))))
-          candidates))
+  (dolist (candidate candidates)
+    (pushnew (cons candidate 0) rankings
+	     :key #'(lambda (x) (equal (car x) candidate))))
+  (list rankings))
 
 (defun has-majority (rankings)
   "Check if there is a majority winner in the rankings."
   (let ((total-votes (reduce #'+ rankings :key #'cdr)))
-    (> (cdr (first rankings)) (/ total-votes 2))))
+    (> (cdar (last rankings)) (/ total-votes 2))))
 
-(defun process-rankings (candidates rankings)
-  "Add the current rankings to the history data structure. When a candidate is
-   eliminated, add them back into the rankings with a vote total of zero."
-  (sort (add-eliminated rankings candidates) #'(lambda (a b)
-						 (> (cdr a) (cdr b)))))
+(defun update-rhist (rankings candidates ranking-history)
+  "Add a new entry to the ranking history including previously eliminated
+candidates."
+  (append ranking-history (add-eliminated rankings candidates)))
 
 (defun display-results (ranking-history)
   "Print out the ranking history."
@@ -87,7 +80,7 @@
       (format t "Round ~a~%" (incf round-nbr))
       (format t "Candidate                       Votes
 ------------------------------  ---------~%")
-      (dolist (rankpair round)
+      (dolist (rankpair (reverse round))
 	(let* ((candidate (car rankpair))
 	       (votes (cdr rankpair))
 	       (hspace-col1 (- 32 (length candidate)))
@@ -100,9 +93,8 @@
   "Tournament round."
   (let* ((top-choices (mapcar #'car ballots))
 	 (rankings (rank-prefs top-choices))
-	 (round-results (process-rankings candidates rankings))
-	 (rhist (append ranking-history (list round-results))))
-    (if (has-majority round-results)
+	 (rhist (update-rhist rankings candidates ranking-history)))
+    (if (has-majority rankings)
 	;; Terminal case: print end results and/or return ranking hist
 	(progn
 	  (display-results rhist)
