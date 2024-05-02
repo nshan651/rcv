@@ -14,7 +14,11 @@
   :components ((:module "src"
 		:serial t
 		:components (
-			     (:file "main"))))
+			     ;; (:file "main")
+			     (:file "stdin")
+			     (:file "tournament")
+			     (:file "rcv")
+			     )))
   :long-description
   #.(uiop:read-file-string
      (uiop:subpathname *load-pathname* "README.md"))
