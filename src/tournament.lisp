@@ -1,11 +1,4 @@
-;;;; Ranked choice voting program
-;;;; Instant Runoff Voting(IRV)
-;;;; The instant-runoff vote counting procedure is as follows:
-;;;;    1. Eliminate the candidate appearing as the first preference on the fewest ballots.
-;;;;    2. If only one candidate remains, elect this candidate and stop.
-;;;;    3. Otherwise go to 1.
-;;;; https://en.wikipedia.org/wiki/Instant-runoff_voting
-;;;; Python project for IRV: https://github.com/jontingvold/pyrankvote
+;;;; Ranked choice voting
 
 (in-package #:cl-user)
 (defpackage #:rcv.tournament

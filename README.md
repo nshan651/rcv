@@ -2,13 +2,6 @@
 
 Ranked Choice Voting in Lisp.
 
-## Meta Notes
-
-Collection of misc. thoughts and ideas to organize later.
-
-- By default, rcv will assume all candidates in the ballots are eligible. To add a custom candidate list, pass in the `-c | --candidates` flag.
-- Use `-n | --number-of-seats` to specify how many seats (winners) the election will have (default is 1).
-
 ## Usage
 
 ```sh
@@ -40,16 +33,34 @@ LICENSE:
 
 ### Instant Runoff Voting (IRV)
 
-The algorithm for IRV is as follows:
+The algorithm for [IRV](https://en.wikipedia.org/wiki/Instant-runoff_voting) is as follows:
 
 1. Eliminate the candidate with the fewest votes.
 2. If only one candidate remains, elect this candidate and stop.
-3. Otherwise, go back to 1."
+3. Otherwise, go back to 1.
 
 This can be implemented with a single seat (one winner), or multiple seats.
 
-### Block-Preferential Voting (BPV)
+### Minimax
+
+[Minimax Condorcet method](https://en.wikipedia.org/wiki/Minimax_Condorcet_method)
+
+### Preferential Block Voting (PBV)
+
+[Preferential block voting](https://en.wikipedia.org/wiki/Preferential_block_voting)
+
+### Single Transferable Voting (STV)
+
+[Single transferable voting](https://en.wikipedia.org/wiki/Single_transferable_vote)
 
 ## Resources
 
 - https://www.rcvresources.org/types-of-rcv
+
+### Misc Notes
+
+Unsorted notes.
+
+- Formula for determining the threshold of votes each candidates need in a multi-seat election:
+	- $C_{threshold} = \frac{1}{C_{seats} + 1} + 1$
+	- i.e. in a 3-seat election, candidate A needs greater than 25% of the votes to win.
