@@ -14,7 +14,7 @@
   :components ((:module "src"
 		:serial t
 		:components (
-			     ;; (:file "main")
+			     (:file "election")
 			     (:file "stdin")
 			     (:file "tournament")
 			     (:file "rcv")
@@ -26,8 +26,7 @@
 
   :build-operation "program-op"
   :build-pathname "bin/rcv"
-  :entry-point "rcv::main"
-)
+  :entry-point "rcv::main")
 
 (defsystem "rcv/tests"
   :description "Test suite for rcv."

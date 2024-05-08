@@ -2,11 +2,12 @@
 (defpackage #:rcv/t/main
   (:use #:cl
 	#:fiveam
-	#:rcv))
+        #:rcv/stdin
+	#:rcv/tournament))
 (in-package #:rcv/t/main)
 
 (def-suite test-rcv
-  :description "Test my system")
+  :description "Test rank choice voting.")
 (in-suite test-rcv)
 
 (defvar *ballots-str*
@@ -30,21 +31,22 @@
     (Nader Gore)
     (Gore Nader Bush)
     (Gore Nader)
-    (Gore Nader Yeet)))
-  ;; "Define a nested list of ballots of type symbol.")
+    (Gore Nader Yeet))
+  "Define a nested list of ballots of type symbol.")
 
-(defvar *ballots*
-  (cl-csv:read-csv (parse-namestring "data/ballots.csv")))
+(defvar *ballots-f*
+  (rcv/stdin:get-ballots "./data/ballots.csv")
+  "Read a nested list of ballots from a file.")
 
 (defvar *candidates*
-  (remove-duplicates (reduce #'append *ballots* :key #'identity)
-		     :test #'string=))
+  (rcv/stdin:get-candidates *ballots-f*)
+  "Obtain a list of eligible candidates, derived from the ballots.")
 
 (fiveam:test irv-1
-  (let ((res (tournament *ballots* *candidates*)))
+  (let ((res (tournament *ballots-f* *candidates* 1)))
     (fiveam:is
      (equal res
-	    '((("Bush" . 4) ("Gore" . 3) ("Nader" . 2) ("Yeet" . 0))
-	      (("Gore" . 5) ("Bush" . 4) ("Nader" . 0) ("Yeet" . 0)))))))
+	    '((("Yeet" . 0) ("Nader" . 2) ("Gore" . 3) ("Bush" . 4))
+	      (("Yeet" . 0) ("Nader" . 0) ("Bush" . 4) ("Gore" . 5)))))))
 
 (fiveam:run!)

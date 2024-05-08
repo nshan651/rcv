@@ -1,10 +1,9 @@
 ;;;; Ranked choice voting
-
 (in-package #:cl-user)
-(defpackage #:rcv.tournament
+(defpackage #:rcv/tournament
   (:use #:cl)
   (:export :display-results :tournament))
-(in-package #:rcv.tournament)
+(in-package #:rcv/tournament)
 
 (defun rank-prefs (top-choices)
   "Return the rankings of each ballot's top choice candidates."
@@ -16,7 +15,6 @@
       ;; Increment the cons cdr
       (let ((existing (assoc choice ranking :test #'equal)))
 	(setf (cdr existing) (1+ (cdr existing)))))
-    ;; ranking))
     (sort ranking #'(lambda (a b)
 		       (< (cdr a) (cdr b))))))
 
@@ -35,10 +33,14 @@
 	     :key #'(lambda (x) (equal (car x) candidate))))
   (list rankings))
 
-(defun has-majority (rankings)
+(defun find-majority-winners (rankings seats)
   "Check for majority winner(s) in the rankings."
-  (let ((total-votes (reduce #'+ rankings :key #'cdr)))
-    (> (cdar (last rankings)) (/ total-votes 2))))
+  (let* ((total-votes (reduce #'+ rankings :key #'cdr))
+	 ;; Use the droop quote formula.
+	 (threshold (1+ (/ total-votes (1+ seats)))))
+    (format t "THRESHOLD: ~A~%" threshold)
+    (remove-if #'(lambda (x) (< (cdr x) threshold))
+	       rankings)))
 
 (defun update-rhist (rankings candidates ranking-history)
   "Add a new entry to the ranking history including previously eliminated
@@ -65,17 +67,30 @@ candidates."
   "Get a mapping of the candidate and their respective party."
   (mapcar #'(lambda (c) (cons c 'Unkown)) candidates))
 
-(defun tournament (ballots candidates &optional (ranking-history '()))
+(defun tournament (ballots candidates seats &optional
+					      elected-candidates
+					      ranking-history)
   "Tournament round."
   (let* ((top-choices (mapcar #'car ballots))
 	 (rankings (rank-prefs top-choices))
 	 (rhist (update-rhist rankings candidates ranking-history)))
-    (if (has-majority rankings)
-	;; Terminal case: print end results and/or return ranking hist
-	(progn
-	  (display-results rhist)
-	  rhist)
-	;; Move to next tourn round; eliminating last place candidates
-	(tournament (eliminate rankings ballots)
-		    candidates
-		    rhist))))
+
+    (let* ((elected (find-majority-winners rankings seats))
+	   (remaining-candidates
+	     (remove-if #'(lambda (x) (member x elected)) rankings)))
+
+      (format t "ELECTED: ~A~%" elected)
+      (format t "REMAINING: ~A~%" remaining-candidates)
+      ;; (if (and elected (= seats (length elected)))
+      (if (or (= 5 (length rhist))
+	   (and elected (= seats (length elected))))
+	  ;; Terminal case: print end results and/or return ranking hist
+	  (progn
+	    (display-results rhist)
+	    rhist)
+	  ;; Move to next tourn round; eliminating last place candidates
+	  (tournament (eliminate remaining-candidates ballots)
+		      candidates
+		      seats
+		      elected
+		      rhist)))))

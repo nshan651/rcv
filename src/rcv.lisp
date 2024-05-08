@@ -5,27 +5,28 @@
 (in-package #:cl-user)
 (defpackage #:rcv
   (:use #:cl #:clingon)
-  (:import-from :rcv.tournament
+  (:import-from :rcv/tournament
    :tournament)
-  (:import-from :rcv.stdin
+  (:import-from :rcv/stdin
    :get-ballots
    :get-candidates)
   (:export :main :rcv))
 (in-package #:rcv)
 
-(defun rcv (source)
+(defun rcv (source seats)
   "Ranked choice voting.
 1. Eliminate the candidate with the fewest votes.
 2. If only one candidate remains, elect this candidate and stop.
 3. Otherwise, go back to 1."
   (let* ((ballots (get-ballots source))
 	 (candidates (get-candidates ballots)))
-    (tournament ballots candidates)))
+    (tournament ballots candidates seats)))
 
 (defun cli/handler (cmd)
   "Command-line argument handler which enters rcv."
-  (let ((args (clingon:command-arguments cmd)))
-    (rcv (car args))))
+  (let ((args (clingon:command-arguments cmd))
+	(seats (parse-integer (clingon:getopt cmd :seats))))
+    (rcv (car args) seats)))
 
 (defun cli/options ()
   "A list of cli options."
