@@ -47,33 +47,11 @@
 candidates."
   (append ranking-history (add-eliminated rankings candidates)))
 
-(defun display-results (ranking-history)
-  "Print out the ranking history."
-  (let ((round-nbr 0))
-    (dolist (round ranking-history)
-      (format t "Round ~a~%" (incf round-nbr))
-      (format t "Candidate                       Votes
-------------------------------  ---------~%")
-      (dolist (rankpair (reverse round))
-	(let* ((candidate (car rankpair))
-	       (votes (cdr rankpair))
-	       (hspace-col1 (- 32 (length candidate)))
-	       ;; (hspace-col2 (- 10 (length (format nil "~d" votes))))
-	       )
-	  (format t "~a~vA~a~%" candidate hspace-col1 #\Space votes)))
-      (format t "~%"))))
-
-(defun add-party (candidates)
-  "Get a mapping of the candidate and their respective party."
-  (mapcar #'(lambda (c) (cons c 'Unkown)) candidates))
-
-(defun tournament (ballots candidates seats &optional
-					      elected-candidates
-					      ranking-history)
+(defun tournament (ballots candidates seats &optional elected-candidates ranking-history)
   "Tournament round."
   (let* ((top-choices (mapcar #'car ballots))
 	 (rankings (rank-prefs top-choices))
-	 (rhist (update-rhist rankings candidates ranking-history)))
+	 (rhist (update-rhist rankings election)))
 
     (let* ((elected (find-majority-winners rankings seats))
 	   (remaining-candidates

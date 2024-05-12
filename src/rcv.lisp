@@ -7,9 +7,10 @@
   (:use #:cl #:clingon)
   (:import-from :rcv/tournament
    :tournament)
-  (:import-from :rcv/stdin
-   :get-ballots
-   :get-candidates)
+  (:import-from :rcv/election
+   ;; :election
+		:get-ballots
+   )
   (:export :main :rcv))
 (in-package #:rcv)
 
@@ -18,9 +19,9 @@
 1. Eliminate the candidate with the fewest votes.
 2. If only one candidate remains, elect this candidate and stop.
 3. Otherwise, go back to 1."
-  (let* ((ballots (get-ballots source))
-	 (candidates (get-candidates ballots)))
-    (tournament ballots candidates seats)))
+  (let* ((ballots (rcv/election:get-ballots source))
+	 (candidates (rcv/election:get-candidates ballots)))
+    (tournament ballots candidates)))
 
 (defun cli/handler (cmd)
   "Command-line argument handler which enters rcv."
@@ -63,8 +64,7 @@
     :flag
     :description "Single transferable vote."
     :long-name "stv"
-    :key :stv)
-))
+    :key :stv)))
 
 (defun cli/command ()
   "Command-line entrypoint."

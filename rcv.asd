@@ -15,7 +15,6 @@
 		:serial t
 		:components (
 			     (:file "election")
-			     (:file "stdin")
 			     (:file "tournament")
 			     (:file "rcv")
 			     )))
